@@ -20,6 +20,7 @@ API_KEY = os.getenv("API_KEY", "my-secret-key")
 DEFAULT_WIDTH = int(os.getenv("DEFAULT_WIDTH", 1920))
 DEFAULT_HEIGHT = int(os.getenv("DEFAULT_HEIGHT", 1080))
 DEFAULT_PROXY = os.getenv("DEFAULT_PROXY", None)
+WAIT_TIME = int(os.getenv("PAGE_LOAD_WAIT", 2))
 
 # Config
 API_KEY = "my-secret-key"
@@ -80,7 +81,7 @@ def take_screenshot(url: str, proxy: str = None, width=None, height=None) -> str
 
     try:
         driver.get(url)
-        time.sleep(2)
+        time.sleep(WAIT_TIME)
         tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
         driver.save_screenshot(tmp_file.name)
         return tmp_file.name
