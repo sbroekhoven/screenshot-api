@@ -9,8 +9,6 @@ import json
 from datetime import datetime
 from functools import wraps
 from dotenv import load_dotenv
-from PIL import Image, ImageDraw, ImageFont
-import os
 
 
 
@@ -23,9 +21,6 @@ DEFAULT_WIDTH = int(os.getenv("DEFAULT_WIDTH", 1920))
 DEFAULT_HEIGHT = int(os.getenv("DEFAULT_HEIGHT", 1080))
 DEFAULT_PROXY = os.getenv("DEFAULT_PROXY", None)
 WAIT_TIME = int(os.getenv("PAGE_LOAD_WAIT", 2))
-WATERMARK_TEXT = os.getenv("WATERMARK_TEXT", "Captured by screenshot-api")
-WATERMARK_FONT_SIZE = int(os.getenv("WATERMARK_FONT_SIZE", 28))
-
 
 # Metrics counters
 metrics = {
@@ -91,52 +86,11 @@ def take_screenshot(url: str, proxy: str = None, width=None, height=None) -> str
     try:
         driver.get(url)
         time.sleep(WAIT_TIME)
-
         tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-        screenshot_path = tmp_file.name
-
-        driver.save_screenshot(screenshot_path)
-        add_watermark(screenshot_path, WATERMARK_TEXT)
-
-        return screenshot_path
+        driver.save_screenshot(tmp_file.name)
+        return tmp_file.name
     finally:
         driver.quit()
-
-# Function to add watermark
-def add_watermark(image_path, text="Captured by screenshot-api"):
-    with Image.open(image_path).convert("RGBA") as base:
-        watermark = Image.new("RGBA", base.size, (255, 255, 255, 0))
-        draw = ImageDraw.Draw(watermark)
-
-        # Use a bold, readable font
-        try:
-            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", WATERMARK_FONT_SIZE)
-        except:
-            font = ImageFont.load_default()
-
-        # Calculate text size
-        bbox = draw.textbbox((0, 0), text, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
-
-        # Padding and positioning
-        padding = 12
-        x = base.width - text_width - padding - 10
-        y = base.height - text_height - padding - 10
-
-        # Background box: light gray, semi-transparent
-        draw.rectangle(
-            [(x - padding, y - padding), (x + text_width + padding, y + text_height + padding)],
-            fill=(200, 200, 200, 180)  # light gray with some transparency
-        )
-
-        # Draw text (fully opaque white)
-        draw.text((x, y), text, font=font, fill=(0, 0, 0, 255))  # dark text for better contrast
-
-        # Combine watermark with base image
-        combined = Image.alpha_composite(base, watermark).convert("RGB")
-        combined.save(image_path, "PNG")
-
 
 # Routes
 @app.route("/screenshot", methods=["POST"])
