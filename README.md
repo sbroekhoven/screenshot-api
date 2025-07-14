@@ -84,7 +84,18 @@ curl -X POST http://localhost:5000/screenshot \
   -d '{"url": "https://example.com"}' --output screenshot.png
 ```
 
----
+### Powershell user?
+
+Try this
+
+```powershell
+Invoke-RestMethod `
+  -Uri "http://localhost:5000/screenshot" `
+  -Method POST `
+  -Headers @{ "Content-Type" = "application/json"; "X-API-Key" = "my-secret-key" } `
+  -Body '{ "url": "https://example.com" }' `
+  -OutFile "screenshot.png"
+```
 
 ## Health & Metrics
 
@@ -117,6 +128,9 @@ Run it:
 
 ```bash
 docker compose up -d
+
+# or
+docker compose up -d --build
 ```
 
 Stop it:
@@ -130,3 +144,14 @@ View logs:
 ```bash
 docker compose logs -f
 ```
+
+Cleaning up:
+
+```bash
+# To free up disk space from old builds:
+docker image prune -f
+
+# Or remove dangling volumes and networks
+docker system prune -f
+```
+
