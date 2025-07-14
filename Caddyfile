@@ -1,0 +1,21 @@
+# Example Caddyfile
+
+screenshot.example.com {
+    @allowed_ips remote_ip {
+        range 127.0.0.1
+        range ::1
+    }
+
+    handle @allowed_ips {
+        reverse_proxy localhost:5000 {
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up Host {host}
+        }
+    }
+
+    handle {
+        respond "Access denied" 403
+    }
+}

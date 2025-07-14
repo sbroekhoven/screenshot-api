@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  screenshot-api:
+    build: .
+    container_name: screenshot-api
+    env_file: .env
+    ports:
+      - "5000:5000"
+    depends_on:
+      - tor
+    restart: unless-stopped
+
+  tor:
+    image: dperson/torproxy
+    container_name: tor
+    ports:
+      - "9050:9050"
+    restart: unless-stopped

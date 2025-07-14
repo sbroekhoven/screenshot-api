@@ -74,6 +74,13 @@ def take_screenshot(url: str, proxy: str = None, width=None, height=None) -> str
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
 
+    # Custom User-Agent, because I'm not a robot
+    chrome_options.add_argument(
+        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/114.0.0.0 Safari/537.36"
+    )
+
     if proxy:
         chrome_options.add_argument(f'--proxy-server={proxy}')
 
