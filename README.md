@@ -111,3 +111,22 @@ All actions and errors are logged to stdout as structured JSON:
 {"timestamp":"2025-07-14T15:21:33.412Z","event":"screenshot_taken","data":{"url":"https://example.com","ip":"172.17.0.1"}}
 ```
 
+## Docker Compose
+
+Run it: 
+
+```bash
+docker compose up -d
+```
+
+Stop it:
+
+```bash
+docker compose down
+```
+
+View logs:
+
+```bash
+docker compose logs -f
+```

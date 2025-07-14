@@ -22,9 +22,6 @@ DEFAULT_HEIGHT = int(os.getenv("DEFAULT_HEIGHT", 1080))
 DEFAULT_PROXY = os.getenv("DEFAULT_PROXY", None)
 WAIT_TIME = int(os.getenv("PAGE_LOAD_WAIT", 2))
 
-# Config
-API_KEY = "my-secret-key"
-
 # Metrics counters
 metrics = {
     "total_requests": 0,
