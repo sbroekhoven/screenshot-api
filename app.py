@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 
 app = Flask(__name__)
 
+# Load environment variables
 load_dotenv()
 API_KEY = os.getenv("API_KEY", "my-secret-key")
 DEFAULT_WIDTH = int(os.getenv("DEFAULT_WIDTH", 1920))
@@ -38,6 +39,7 @@ formatter = logging.Formatter('%(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+# Function to log events
 def log_event(event_type, data=None):
     entry = {
         "timestamp": datetime.utcnow().isoformat(),
@@ -59,7 +61,7 @@ def log_and_count(func):
             raise
     return wrapper
 
-
+# Function to take a screenshot
 def take_screenshot(url: str, proxy: str = None, width=None, height=None) -> str:
     width = width or DEFAULT_WIDTH
     height = height or DEFAULT_HEIGHT
@@ -85,6 +87,7 @@ def take_screenshot(url: str, proxy: str = None, width=None, height=None) -> str
     finally:
         driver.quit()
 
+# Routes
 @app.route("/screenshot", methods=["POST"])
 @log_and_count
 def screenshot():
