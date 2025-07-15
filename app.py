@@ -11,7 +11,9 @@ from functools import wraps
 from dotenv import load_dotenv
 from PIL import Image, ImageDraw, ImageFont
 import os
+import requests
 from urllib.parse import urlparse
+import uuid
 
 
 app = Flask(__name__)
@@ -166,8 +168,8 @@ def screenshot():
 
 
 
-    width = data.get("width")
-    height = data.get("height")
+    width = int(data.get("width", DEFAULT_WIDTH) or DEFAULT_WIDTH)
+    height = int(data.get("height", DEFAULT_HEIGHT) or DEFAULT_HEIGHT)
     # Check if dimensions are not too big
     if width > 1920 or height > 1080:
         return jsonify({"error": "Screenshot dimensions too large"}), 400
@@ -187,6 +189,72 @@ def screenshot():
     finally:
         if 'screenshot_path' in locals() and os.path.exists(screenshot_path):
             os.remove(screenshot_path)
+
+# Start FORM option.
+@app.route("/form", methods=["GET", "POST"])
+def form():
+    if request.method == "POST":
+        url = request.form.get("url")
+        api_key = request.form.get("api_key")
+        proxy = request.form.get("proxy")
+        width = request.form.get("width")
+        height = request.form.get("height")
+
+        headers = {"X-API-Key": api_key, "Content-Type": "application/json"}
+        payload = {
+            "url": url,
+            "proxy": proxy or None,
+            "width": int(width) if width else None,
+            "height": int(height) if height else None
+        }
+
+        try:
+            r = requests.post(
+                f"{request.host_url}screenshot",
+                headers=headers,
+                json=payload,
+                stream=True
+            )
+
+            if r.status_code == 200:
+                unique_name = f"preview-{uuid.uuid4().hex}.png"
+                preview_path = os.path.join(tempfile.gettempdir(), unique_name)
+                with open(preview_path, "wb") as f:
+                    f.write(r.content)
+
+                return f"""
+                <h2>Screenshot Success</h2>
+                <img src="/preview/{unique_name}" style="max-width:100%;" />
+                <p><a href="/form">Back</a></p>
+                """
+            else:
+                return f"<p>Error {r.status_code}: {r.text}</p><a href='/form'>Back</a>"
+        except Exception as e:
+            return f"<p>Request failed: {e}</p><a href='/form'>Back</a>"
+
+    return '''
+    <h2>Screenshot Form</h2>
+    <form method="post">
+        URL: <input name="url" size="60"><br><br>
+        API Key: <input name="api_key" size="30"><br><br>
+        Proxy (optional): <input name="proxy" size="30"><br><br>
+        Width (optional): <input name="width" size="6"> Height: <input name="height" size="6"><br><br>
+        <input type="submit" value="Take Screenshot">
+    </form>
+    '''
+
+@app.route("/preview/<filename>")
+def preview(filename):
+    preview_path = os.path.join(tempfile.gettempdir(), filename)
+
+    if os.path.exists(preview_path):
+        response = send_file(preview_path, mimetype="image/png")
+        os.remove(preview_path)
+        return response
+
+    return "Screenshot not found", 404
+
+# End FORM option
 
 @app.route("/health", methods=["GET"])
 def health():
