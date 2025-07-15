@@ -11,7 +11,7 @@ from functools import wraps
 from dotenv import load_dotenv
 from PIL import Image, ImageDraw, ImageFont
 import os
-
+from urllib.parse import urlparse
 
 
 app = Flask(__name__)
@@ -137,6 +137,13 @@ def add_watermark(image_path, text="Captured by screenshot-api"):
         combined = Image.alpha_composite(base, watermark).convert("RGB")
         combined.save(image_path, "PNG")
 
+# Function to validate URL
+def is_valid_url(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+        return parsed.scheme in ("http", "https") and parsed.netloc
+    except:
+        return False
 
 # Routes
 @app.route("/screenshot", methods=["POST"])
@@ -147,13 +154,28 @@ def screenshot():
         return jsonify({"error": "Unauthorized"}), 401
 
     data = request.get_json()
+
+    # Check is URL is set.
     if not data or "url" not in data:
         return jsonify({"error": "Missing 'url' field"}), 400
 
     url = data["url"]
+    # Check if URL is valid.
+    if not is_valid_url(url):
+        return jsonify({"error": "Invalid URL"}), 400
+
+
+
     width = data.get("width")
     height = data.get("height")
+    # Check if dimensions are not too big
+    if width > 1920 or height > 1080:
+        return jsonify({"error": "Screenshot dimensions too large"}), 400
+
     proxy = data.get("proxy")
+    # If the URL is .ontion, check if a proxy is provided.
+    if ".onion" in url and not proxy:
+        return jsonify({"error": "Tor proxy required for .onion domains"}), 403
 
     try:
         screenshot_path = take_screenshot(url, proxy, width, height)
