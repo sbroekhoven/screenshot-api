@@ -14,7 +14,8 @@ import os
 import requests
 from urllib.parse import urlparse
 import uuid
-
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 app = Flask(__name__)
 
@@ -25,9 +26,6 @@ DEFAULT_WIDTH = int(os.getenv("DEFAULT_WIDTH", 1920))
 DEFAULT_HEIGHT = int(os.getenv("DEFAULT_HEIGHT", 1080))
 DEFAULT_PROXY = os.getenv("DEFAULT_PROXY", None)
 WAIT_TIME = int(os.getenv("PAGE_LOAD_WAIT", 2))
-WATERMARK_TEXT = os.getenv("WATERMARK_TEXT", "Captured by screenshot-api")
-WATERMARK_FONT_SIZE = int(os.getenv("WATERMARK_FONT_SIZE", 28))
-
 
 # Metrics counters
 metrics = {
@@ -98,46 +96,58 @@ def take_screenshot(url: str, proxy: str = None, width=None, height=None) -> str
         screenshot_path = tmp_file.name
 
         driver.save_screenshot(screenshot_path)
-        add_watermark(screenshot_path, WATERMARK_TEXT)
+        add_watermark(screenshot_path, url)
 
         return screenshot_path
     finally:
         driver.quit()
 
-# Function to add watermark
-def add_watermark(image_path, text="Captured by screenshot-api"):
+def add_watermark(image_path, url, font_size=20):
+    # Load timezone from env
+    tz_name = os.getenv("WATERMARK_TIMEZONE", "UTC")
+    try:
+        tz = ZoneInfo(tz_name)
+    except Exception:
+        tz = ZoneInfo("UTC")  # Fallback if invalid timezone
+
+    now = datetime.now(tz)
+    timestamp = now.strftime("%Y-%m-%d %H:%M %Z")  # Example: 2025-07-15 15:43 CEST
+
+    text = f"{timestamp}\n{url}"
     with Image.open(image_path).convert("RGBA") as base:
         watermark = Image.new("RGBA", base.size, (255, 255, 255, 0))
         draw = ImageDraw.Draw(watermark)
 
-        # Use a bold, readable font
-        try:
-            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", WATERMARK_FONT_SIZE)
-        except:
-            font = ImageFont.load_default()
+        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        font = ImageFont.truetype(font_path, font_size)
 
-        # Calculate text size
-        bbox = draw.textbbox((0, 0), text, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
+        # Build watermark text
+        # timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+        # text = f"{timestamp}\n{url}"
 
-        # Padding and positioning
-        padding = 12
-        x = base.width - text_width - padding - 10
-        y = base.height - text_height - padding - 10
+        # Get bounding box for multiline text
+        bbox = draw.multiline_textbbox((0, 0), text, font=font)
+        textwidth = bbox[2] - bbox[0]
+        textheight = bbox[3] - bbox[1]
 
-        # Background box: light gray, semi-transparent
+        # Position: bottom-left corner with padding
+        padding = 16
+        x = padding
+        y = base.height - textheight - padding
+
+        # Background box
         draw.rectangle(
-            [(x - padding, y - padding), (x + text_width + padding, y + text_height + padding)],
-            fill=(200, 200, 200, 180)  # light gray with some transparency
+            [(x - padding, y - padding), (x + textwidth + padding, y + textheight + padding)],
+            fill=(200, 200, 200, 180)  # light gray, semi-transparent
         )
 
-        # Draw text (fully opaque white)
-        draw.text((x, y), text, font=font, fill=(0, 0, 0, 255))  # dark text for better contrast
+        # Text
+        draw.multiline_text((x, y), text, font=font, fill=(0, 0, 0, 255))
 
-        # Combine watermark with base image
+        # Save result
         combined = Image.alpha_composite(base, watermark).convert("RGB")
         combined.save(image_path, "PNG")
+
 
 # Function to validate URL
 def is_valid_url(url: str) -> bool:
