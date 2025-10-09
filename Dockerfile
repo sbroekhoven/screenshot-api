@@ -31,12 +31,24 @@ RUN apt-get update && apt-get install -y \
 ENV CHROME_BIN=/usr/bin/chromium
 ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
-# Copy app files
+# Create a non-root user
+RUN groupadd -r appuser && useradd -r -g appuser -u 1000 appuser
+
+# Set up working directory
 WORKDIR /app
+
+# Copy and install Python dependencies as root
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy app files
 COPY app.py .
+
+# Change ownership of the app directory to the non-root user
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
 
 # Expose port
 EXPOSE 5000
