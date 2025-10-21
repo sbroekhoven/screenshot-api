@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
     libatk1.0-0 \
     libcups2 \
     libdbus-1-3 \
-    libgdk-pixbuf2.0-0 \
+    # libgdk-pixbuf2.0-0 \
     libnspr4 \
     libnss3 \
     libx11-xcb1 \
@@ -31,9 +31,6 @@ RUN apt-get update && apt-get install -y \
 ENV CHROME_BIN=/usr/bin/chromium
 ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
-# Create a non-root user
-RUN groupadd -r appuser && useradd -r -g appuser -u 1000 appuser
-
 # Set up working directory
 WORKDIR /app
 
@@ -44,14 +41,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy app files
 COPY app.py .
 
-# Change ownership of the app directory to the non-root user
-RUN chown -R appuser:appuser /app
-
-# Switch to non-root user
-USER appuser
-
 # Expose port
-EXPOSE 5000
+EXPOSE 9000
 
 CMD ["python", "app.py"]
 
